@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Puffin Isle</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐦</text></svg>">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0d2b4a; font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif; color: #12324f; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #wrap { position: relative; width: min(100vw, calc((100vh - 58px) * 1.6)); }
+  #stage { position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 10px 10px 0 0; overflow: hidden; background: #a9dcff; }
+  #stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #ov { touch-action: none; }
+  #hud { display: flex; gap: 6px; align-items: center; padding: 8px; background: linear-gradient(#2f7fd1, #1f5fa8); border-radius: 0 0 10px 10px; height: 58px; }
+  #hud.hidden { visibility: hidden; }
+  #hud button, .btn { border: 0; border-radius: 10px; background: #fff; color: #1f5fa8; font-size: 20px; height: 40px; min-width: 42px; padding: 0 10px; cursor: pointer; font-weight: bold; box-shadow: 0 3px 0 #0c3d73; font-family: inherit; }
+  .btn { font-size: 15px; height: 34px; }
+  #hud button:active, .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0c3d73; }
+  #hud button.on, .btn.on { background: #ffd23f; }
+  #chat { flex: 1; min-width: 60px; height: 40px; border-radius: 20px; border: 3px solid #0c3d73; padding: 0 14px; font-size: 16px; font-family: inherit; outline: none; }
+  .panel { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); background: #f3f9ff; border: 5px solid #1f5fa8; border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-height: 86%; overflow: auto; width: min(92%, 660px); display: none; z-index: 5; }
+  .panel.show { display: block; }
+  .panel h2 { margin: 0 0 12px; color: #1f5fa8; text-align: center; font-size: 26px; }
+  .close { position: absolute; right: 10px; top: 8px; background: #e74c3c; color: #fff; border: 0; border-radius: 50%; width: 34px; height: 34px; font-size: 18px; cursor: pointer; font-weight: bold; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .card { background: #fff; border: 3px solid #bcd8f5; border-radius: 12px; padding: 6px; text-align: center; cursor: pointer; font-size: 14px; }
+  .card:hover { border-color: #1f5fa8; }
+  .card.worn { border-color: #2fa84f; background: #eaffef; }
+  .card canvas { width: 100px; height: 120px; }
+  .card b { display: block; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0 14px; }
+  .sw { width: 36px; height: 36px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 0 0 2px #9bb; cursor: pointer; padding: 0; }
+  .sw.sel { box-shadow: 0 0 0 4px #1f5fa8; }
+  #login { text-align: center; width: min(92%, 420px); }
+  #login h1 { margin: 0; font-size: 44px; color: #1f5fa8; letter-spacing: 1px; text-shadow: 0 3px 0 #bfe0ff; }
+  #login p { margin: 6px 0 12px; }
+  #login input { width: 100%; height: 44px; font-size: 18px; border-radius: 12px; border: 3px solid #9cc4ec; padding: 0 12px; margin: 5px 0; font-family: inherit; }
+  #login .btn { width: 100%; height: 50px; font-size: 24px; background: #2fa84f; color: #fff; box-shadow: 0 4px 0 #1b6e31; margin-top: 8px; }
+  #err { color: #d43b3b; font-weight: bold; min-height: 20px; }
+  .small { font-size: 13px; color: #557; }
+  #coins { position: absolute; right: 12px; top: 10px; background: rgba(255,255,255,.92); border-radius: 20px; padding: 4px 14px; font-weight: bold; font-size: 20px; color: #a6750a; border: 3px solid #f2c12e; pointer-events: none; z-index: 3; }
+  #toast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: #1f5fa8; color: #fff; padding: 8px 18px; border-radius: 20px; font-weight: bold; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9; white-space: nowrap; }
+  #tracker { position: absolute; right: 10px; top: 56px; width: 250px; background: rgba(10,25,45,.62); color: #fff; border-radius: 10px; padding: 8px 10px; font-size: 13px; z-index: 3; pointer-events: none; display: none; }
+  #tracker .trk-h { font-weight: bold; color: #ffd23f; margin-bottom: 4px; } #tracker .trk-h span { color: #bcd; font-weight: normal; font-size: 11px; }
+  #tracker .trk-q { margin-bottom: 6px; } #tracker .trk-q b { color: #ffd23f; } #tracker .ok { color: #7dff6a; }
+  #xpbar { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: min(60%, 420px); height: 16px; background: rgba(0,0,0,.45); border-radius: 8px; overflow: hidden; z-index: 3; pointer-events: none; }
+  #xpfill { height: 100%; width: 0; background: linear-gradient(90deg, #8e44ad, #c86bff); transition: width .4s; }
+  #xptext { position: absolute; inset: 0; text-align: center; color: #fff; font-size: 11px; line-height: 16px; font-weight: bold; }
+  .camb { position: absolute; bottom: 30px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255,255,255,.85); font-size: 20px; cursor: pointer; z-index: 3; box-shadow: 0 2px 0 #0c3d73; }
+  #camL { right: 58px; } #camR { right: 12px; }
+  #editBtn { position: absolute; left: 12px; top: 44px; z-index: 3; display: none; background: #ffd23f; }
+  #homeEdit { position: absolute; left: 8px; right: 8px; bottom: 8px; background: #f3f9ff; border: 4px solid #1f5fa8; border-radius: 14px; padding: 8px; z-index: 4; display: none; max-height: 44%; overflow: auto; }
+  #homeEdit.show { display: block; }
+  #homeEdit .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  #homeEdit .tab.on { background: #ffd23f; }
+  #editDone { margin-left: auto; background: #2fa84f; color: #fff; }
+  .frow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fcard { width: 104px; border: 3px solid #bcd8f5; background: #fff; border-radius: 10px; padding: 2px; cursor: pointer; font-size: 12px; font-family: inherit; }
+  .fcard canvas { width: 96px; height: 96px; display: block; margin: 0 auto; }
+  .swb { border: 3px solid #bcd8f5; background: #fff; border-radius: 10px; padding: 4px 8px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; }
+  .swb i { width: 22px; height: 22px; border-radius: 4px; display: inline-block; border: 1px solid #999; }
+  .swb.on { border-color: #1f5fa8; background: #ffe98a; }
+  .selbar { background: #fff3c4; border-radius: 8px; padding: 6px; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .maplist { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .maplist button { height: 70px; font-size: 17px; border-radius: 14px; border: 3px solid #bcd8f5; background: #fff; cursor: pointer; font-weight: bold; color: #1f5fa8; font-family: inherit; }
+  .maplist button:hover { border-color: #1f5fa8; background: #eaf4ff; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 2px solid #dbe9f7; font-size: 16px; gap: 6px; flex-wrap: wrap; }
+  .row .btns { display: flex; gap: 6px; } .lv { color: #8e44ad; font-size: 13px; font-weight: bold; }
+  #emotes .grid { grid-template-columns: repeat(6, 1fr); }
+  #emotes button { font-size: 30px; background: #fff; border: 3px solid #bcd8f5; border-radius: 12px; height: 56px; cursor: pointer; }
+  #emotes { width: min(92%, 420px); top: auto; bottom: 0; transform: translate(-50%, -10px); }
+  #npc { background: #f6ecd2; border-color: #7a4a24; width: min(92%, 560px); }
+  #npc h2 { color: #7a4a24; } #npc h3 { margin: 4px 0; color: #5a3216; }
+  .say { font-size: 16px; line-height: 1.45; background: #fffaf0; border-radius: 10px; padding: 10px; border: 2px solid #e0c89a; }
+  .qlist { display: flex; flex-direction: column; gap: 6px; }
+  .qitem { text-align: left; font-size: 17px; padding: 8px 10px; border-radius: 10px; border: 2px solid #e0c89a; background: #fff; cursor: pointer; font-family: inherit; color: #5a3216; font-weight: bold; }
+  .qitem:hover { background: #fff3c4; }
+  .mk { display: inline-block; width: 26px; color: #d4a90a; font-size: 20px; font-weight: 900; text-shadow: 0 1px 0 #4a3500; } .mk.gray { color: #999; }
+  .rw { margin: 8px 0; padding: 8px; background: #fff3c4; border-radius: 8px; }
+  .go { background: #2fa84f; color: #fff; box-shadow: 0 3px 0 #1b6e31; margin-right: 8px; }
+  .back { background: #eee; }
+  .logq { border: 2px solid #dbe9f7; border-radius: 10px; padding: 8px; margin-bottom: 8px; background: #fff; }
+  .logq h3 { margin: 0; color: #a6750a; } .logq ul { margin: 6px 0; } li.ok, .ok { color: #1b8a3a; }
+  .lvlrow { font-weight: bold; color: #8e44ad; margin-bottom: 8px; text-align: center; }
+  .small-btn { font-size: 12px; height: 28px; }
+  @media (max-width: 640px) { #hud button { min-width: 32px; font-size: 15px; padding: 0 5px; } #tracker { width: 170px; font-size: 11px; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="gl"></canvas>
+    <canvas id="ov"></canvas>
+    <div id="coins">🪙 0</div>
+    <div id="toast"></div>
+    <div id="tracker"></div>
+    <div id="xpbar"><div id="xpfill"></div><div id="xptext"></div></div>
+    <button class="camb" id="camL" title="Rotate camera (Q)">⟲</button>
+    <button class="camb" id="camR" title="Rotate camera (E)">⟳</button>
+    <button class="btn" id="editBtn">✏️ Edit Home</button>
+
+    <div id="homeEdit">
+      <div class="tabs">
+        <button class="btn tab" data-tab="box">📦 Furniture</button>
+        <button class="btn tab" data-tab="style">🏠 Home Style</button>
+        <button class="btn tab" data-tab="floor">🟫 Floor</button>
+        <button class="btn tab" data-tab="walls">🎨 Walls</button>
+        <button class="btn tab" data-tab="cat">🛒 Catalog</button>
+        <button class="btn" id="editDone">✔ Done</button>
+      </div>
+      <div id="editBody"></div>
+    </div>
+
+    <div id="login" class="panel show">
+      <h1>🐦 Puffin Isle</h1>
+      <p>A snowy 3D island to explore with your friends!</p>
+      <input id="name" maxlength="14" placeholder="Your puffin's name" autocomplete="username">
+      <input id="pw" type="password" maxlength="40" placeholder="Password" autocomplete="current-password">
+      <div class="small">New name? It makes a new account. Remember your password!</div>
+      <div class="swatches" id="loginColors"></div>
+      <div id="err"></div>
+      <button class="btn" id="play">Play!</button>
+    </div>
+
+    <div id="map" class="panel"><button class="close">✕</button><h2>🗺️ Island Map</h2><div class="maplist" id="mapList"></div></div>
+    <div id="shop" class="panel"><button class="close">✕</button><h2>🎩 Hat Catalog</h2><div class="grid" id="shopGrid"></div></div>
+    <div id="furncat" class="panel"><button class="close">✕</button><h2>🛋️ Furniture Catalog</h2><p class="small" style="text-align:center">Bought furniture goes in your furniture box. Place it from ✏️ Edit Home.</p><div class="grid" id="furnGrid"></div></div>
+    <div id="bag" class="panel"><button class="close">✕</button><h2>🎒 Your Bag</h2><b>Feather color</b><div class="swatches" id="bagColors"></div><b>Items</b><div class="grid" id="bagGrid" style="margin-top:8px"></div></div>
+    <div id="online" class="panel"><button class="close">✕</button><h2>👥 Who's Online</h2><div id="onlineList"></div></div>
+    <div id="questlog" class="panel"><button class="close">✕</button><h2>📜 Quest Log</h2><div id="questlogBody"></div></div>
+    <div id="npc" class="panel"><button class="close">✕</button><h2 id="npcName"></h2><div id="npcBody"></div></div>
+    <div id="emotes" class="panel"><div class="grid" id="emoteGrid"></div></div>
+  </div>
+  <div id="hud" class="hidden">
+    <button id="bMap" title="Map">🗺️</button>
+    <button id="bEmote" title="Emotes">😀</button>
+    <button id="bDance" title="Dance (D)">💃</button>
+    <button id="bThrow" title="Throw a snowball (T, then click)">❄️</button>
+    <input id="chat" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off">
+    <button id="bQuest" title="Quest log (L)">📜</button>
+    <button id="bBag" title="Your bag">🎒</button>
+    <button id="bOnline" title="Who's online">👥</button>
+  </div>
+</div>
+<script src="shared.js"></script>
+<script src="engine.js"></script>
+<script src="models.js"></script>
+<script src="rooms.js"></script>
+<script src="minigames.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

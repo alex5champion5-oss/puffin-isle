@@ -6,11 +6,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const S = require('./public/shared.js');
+const S = require('./shared.js');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data.json');
-const PUBLIC_DIR = path.join(__dirname, 'public');
+// Only these files are sent to browsers (everything sits in one folder, no subfolders)
+const PUBLIC_FILES = new Set(['index.html', 'shared.js', 'engine.js', 'models.js', 'rooms.js', 'minigames.js', 'game.js']);
 
 const START_COINS = 100;
 const GAME_CAPS = { sled: 60, fish: 60, catch: 60 };
@@ -91,8 +92,9 @@ const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/index.html';
   if (p === '/health') { res.end('ok'); return; }
-  const file = path.normalize(path.join(PUBLIC_DIR, p));
-  if (!file.startsWith(PUBLIC_DIR)) { res.writeHead(403); res.end(); return; }
+  const name = p.replace(/^\/+/, '');
+  if (!PUBLIC_FILES.has(name)) { res.writeHead(404); res.end('Not found'); return; }
+  const file = path.join(__dirname, name);
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found'); return; }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });

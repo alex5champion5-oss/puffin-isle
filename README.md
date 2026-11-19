@@ -18,6 +18,7 @@ Install Node.js (18 or newer), then in this folder run:
 and open http://localhost:3000
 
 ## Put it online (Render)
+Upload all the files in this folder to a GitHub repository (there are no subfolders).
 - Build command: `npm install`
 - Start command: `node server.js`
 
