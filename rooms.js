@@ -354,7 +354,7 @@
         const beam = Grp(lh, [0, 13, 0]); N(beam, GEO.cone, '#fff3b0', [0, -9, 0], [2.5, 18, 2.5], [0, 0, 0], { a: .15, e: 1 }); beam.rot = [0, 0, PI / 2];
         ctx.anim.push(t => { beam.rot[1] = t * .8; });
         N(lh, GEO.box, '#6b3f1f', [0, 1.4, 2.2], [1.5, 2.8, .3]); N(lh, GEO.box, '#5a3216', [0, 3, 2.25], [1.8, .25, .35]);
-        door(ctx, [8.6, 0, -6.8, 11.4, 3.2, -5.5], 'Lighthouse', 'lighthouse', [0, 8], [10, -3.3], [lh]);
+        door(ctx, [7.6, 0, -11, 12.4, 15.5, -5.5], 'Lighthouse', 'lighthouse', [0, 8], [10, -3.3], [lh]);
         // umbrella, towels, chairs
         N(r, GEO.cyl, '#ffffff', [-5, 1.6, 2], [.08, 3.2, .08]);
         N(r, GEO.cone, '#d43b3b', [-5, 3.4, 2], [2.4, .9, 2.4]); N(r, GEO.cone, '#ffffff', [-5, 3.55, 2], [1.4, .62, 1.4]);

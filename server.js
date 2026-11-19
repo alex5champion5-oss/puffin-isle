@@ -255,7 +255,8 @@ function handle(conn, m) {
       toRoom(p.room, { t: 'move', id: p.id, x: p.x, y: p.y }, p.id);
       break;
     case 'goto': {
-      if (!roomValid(m.room) || m.room === p.room) return;
+      if (!roomValid(m.room)) return;
+      if (m.room === p.room) { sendRoom(p); return; }
       toRoom(p.room, { t: 'left', id: p.id });
       p.room = m.room;
       p.x = num(m.x, 0, 960, 480); p.y = num(m.y, 0, 600, 450);

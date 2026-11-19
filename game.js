@@ -209,7 +209,7 @@ window.addEventListener('pointerup', () => {
 
 function enterRoom(room, at) {
   if (room === '@home') room = 'home:' + myKey();
-  const def = roomDef(room); if (!def) return;
+  const def = roomDef(room); if (!def || room === roomId) return;
   const [x, y] = toServer(...(at || def.spawn));
   players.clear(); roomId = null; scene = null; send({ t: 'goto', room, x, y });
 }
@@ -606,13 +606,18 @@ function drawFlakes(dt) {
 const proj = p => R3.project(p, W, H);
 
 // ---------------------------------------------------------------- main loop
-let last = performance.now(), loginScene = null;
+let last = performance.now(), loginScene = null, arriveNext = false;
 function frame(now) {
+  requestAnimationFrame(frame);
+  try { frameInner(now); } catch (e) { console.error(e); }
+  if (arriveNext) { arriveNext = false; if (pending) arrived(); }
+}
+function frameInner(now) {
   const dt = Math.min(game ? .05 : .12, (now - last) / 1000); last = now;
   const t = now / 1000; nowSec = t;
   octx.clearRect(0, 0, W, H);
-  if (game) { gameFrame(octx, dt, t); requestAnimationFrame(frame); return; }
-  if (!R3) { requestAnimationFrame(frame); return; }
+  if (game) { gameFrame(octx, dt, t); return; }
+  if (!R3) { return; }
 
   let sc = scene;
   if (!sc) {
@@ -653,7 +658,7 @@ function frame(now) {
       Models.posePuffin(p.model, t + p.id, p.moving, p.dancing, p.emote === '😵' && performance.now() - p.emoteT < 800);
       roots.push(p.model.root);
     }
-    if (m && pending && !m.moving) arrived();
+    if (m && pending && !m.moving) arriveNext = true;
     // collectibles pickup
     if (m) { const [mx, mz] = toWorld(m.x, m.y); for (const c of scene.collect) if (Math.hypot(mx - c.x, mz - c.z) < 1.4) { questEvent('collect', c.id); toast(`Found: ${S.COLLECT_NAMES[S.COLLECT[c.id].item]}!`); break; } }
     // dance quest
@@ -699,6 +704,5 @@ function frame(now) {
     if (reconnecting) txt(octx, 'Reconnecting…', 480, 300, 30);
     else if (myId !== null) txt(octx, 'Waddling over…', 480, 300, 30);
   }
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

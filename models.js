@@ -309,7 +309,7 @@
     }
     if (o.windows !== false) { windowBox(g, -w * .3, h * .45, front + .06, 1.4, 1.2, o.lit !== false); windowBox(g, w * .3, h * .45, front + .06, 1.4, 1.2, o.lit !== false); }
     N(g, GEO.disc, '#000000', [0, .02, 0], [w * .7, .02, d * .8], [0, 0, 0], { a: .12 });
-    return { g, door: [x - 1.2, 0, z + front - .4, x + 1.2, 3, z + front + .6], walk: [x, z + front + 1.3], nodes: [g] };
+    return { g, door: [x - w / 2 - .3, 0, z - front, x + w / 2 + .3, h + (o.roofH || 2.4), z + front + .6], walk: [x, z + front + 1.3], nodes: [g] };
   }
   function exitMat(p, z = 9.3) {
     N(p, GEO.box, '#3d7a3d', [0, .04, z], [4, .08, 1.5]);
